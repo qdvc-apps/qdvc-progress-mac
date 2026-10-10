@@ -59,7 +59,7 @@ matching the other QDVC apps. `--preview` also writes
 | `Settings.swift` | `WorkloadSettings` (label values, peaks), `SizePreset`, `ExtraField` |
 | `Projects.swift` | `Project` (inactive-day merge/split), `InactivePeriod`, `Programme`, `ProjectList` (keys, slugs) |
 | `Log.swift` | `ProgressLog` (cells by day and project, totals, last worked), `heatLevel` |
-| `Query.swift` | filter, search and sort → `GridRow`s (`RowLayout`) |
+| `Query.swift` | filter, search and sort → `LayoutRow`s (`RowLayout`) |
 | `WeekLabels.swift` | `WeekLabels`, `FlexibleDate` (spreadsheet dates), `WeekLabelImport` |
 | `Clipboard.swift` | `CellClip`: the pasteboard payload, and text from other apps |
 | `CSV.swift` | RFC 4180 reading and writing |

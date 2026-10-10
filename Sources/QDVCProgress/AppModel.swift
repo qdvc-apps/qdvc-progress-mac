@@ -144,7 +144,7 @@ final class AppModel {
     /// Changes whenever anything the grid draws changes; the grid redraws
     /// when it sees a new value.
     private(set) var revision = 0
-    private(set) var rows: [GridRow] = []
+    private(set) var rows: [LayoutRow] = []
     /// Projects that pass the filter, in row order (including those in
     /// collapsed programmes).
     private(set) var includedKeys: [String] = []

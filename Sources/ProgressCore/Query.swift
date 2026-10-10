@@ -86,7 +86,7 @@ public struct ProjectQuery: Equatable {
 }
 
 /// A row of the grid.
-public enum GridRow: Equatable {
+public enum LayoutRow: Equatable {
     /// A programme heading ("" for No Programme), with the number of
     /// projects under it that pass the filter.
     case programme(name: String, count: Int, collapsed: Bool)
@@ -103,7 +103,7 @@ public enum RowLayout {
     /// passes the filter (including those in collapsed programmes), in row
     /// order.
     public static func rows(for list: ProjectList, query: ProjectQuery, collapsed: Set<String>,
-                            lastWorked: [String: LocalDate]) -> (rows: [GridRow], included: [String]) {
+                            lastWorked: [String: LocalDate]) -> (rows: [LayoutRow], included: [String]) {
         let order = Dictionary(uniqueKeysWithValues: list.projects.enumerated().map { ($0.element.key, $0.offset) })
         let matching = list.projects.filter { query.includes($0, in: list) }
         let sorted = sort(matching, by: query.sort, ascending: query.ascending, order: order, lastWorked: lastWorked)
@@ -112,7 +112,7 @@ public enum RowLayout {
             return (sorted.map { .project(key: $0.key) }, sorted.map(\.key))
         }
 
-        var rows: [GridRow] = []
+        var rows: [LayoutRow] = []
         var included: [String] = []
         for name in list.programmeNames + [""] {
             let members = sorted.filter { list.group(of: $0) == name }
