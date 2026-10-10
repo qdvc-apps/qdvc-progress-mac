@@ -78,6 +78,12 @@ final class GridHeaderView: GridPaneView {
             w += 7
         }
 
+        if model.outlineWorkingWeek {
+            GridStyle.drawWorkingWeekLines(days: (days.lowerBound - 1)..<(days.upperBound + 1),
+                                           date: { model.date(at: $0) }, x: { x($0) },
+                                           top: rowY[1], height: bounds.height - rowY[1])
+        }
+
         // Lines between the header rows and under the header.
         NSColor.separatorColor.withAlphaComponent(0.5).setFill()
         for i in 1..<4 { NSRect(x: 0, y: rowY[i] - 0.5, width: bounds.width, height: 0.5).fill() }
@@ -337,8 +343,9 @@ final class GridCornerView: GridPaneView {
 
 // MARK: - Footer (totals)
 
-/// The totals under the body: each day's workload, and each working week's
-/// (Monday–Friday) and weekend's, as a salmon-to-red heat map.
+/// The totals under the body: optionally a row per programme, then each
+/// day's workload, and each working week's (Monday–Friday) and weekend's,
+/// as a salmon-to-red heat map.
 @MainActor
 final class GridFooterView: GridPaneView {
     var offsetX: CGFloat = 0
@@ -349,14 +356,44 @@ final class GridFooterView: GridPaneView {
         NSColor.windowBackgroundColor.setFill()
         bounds.fill()
         let days = m.days(from: offsetX, to: offsetX + bounds.width)
+        let sub = GridMetrics.subtotalRowHeight
+        let top0 = m.totalsTop
         let row0 = GridMetrics.footerRows[0], row1 = GridMetrics.footerRows[1]
         func x(_ d: Int) -> CGFloat { m.dayX(d) - offsetX }
         let peak = model.settings.dayPeak
 
+        // Programme subtotals.
+        for (i, programme) in m.footerProgrammes.enumerated() {
+            let y = CGFloat(i) * sub
+            for d in days {
+                let date = model.date(at: d)
+                let cell = NSRect(x: x(d), y: y, width: m.cellWidth, height: sub)
+                if date == model.today {
+                    GridStyle.todayYellow.withAlphaComponent(0.16).setFill()
+                    cell.fill()
+                } else if date.isWeekend {
+                    NSColor.labelColor.withAlphaComponent(0.045).setFill()
+                    cell.fill()
+                }
+                let t = model.programmeFooterTotal(programme, on: date)
+                guard t > 0 else { continue }
+                let level = heatLevel(t, peak: peak)
+                let r = cell.insetBy(dx: 1.5, dy: 2)
+                if let fill = GridStyle.totalFill(level: level) {
+                    fill.withAlphaComponent(0.55).setFill()
+                    NSBezierPath(roundedRect: r, xRadius: 3, yRadius: 3).fill()
+                }
+                GridStyle.drawCentered("\(t)", in: r, font: GridStyle.smallFont,
+                                       color: level > 0.75 ? .white : NSColor(hex: 0x3A1A14))
+            }
+            NSColor.separatorColor.withAlphaComponent(0.35).setFill()
+            NSRect(x: 0, y: y + sub - 0.5, width: bounds.width, height: 0.5).fill()
+        }
+
         for d in days {
             let date = model.date(at: d)
             let t = model.dayTotal(date)
-            let rect = NSRect(x: x(d), y: 0, width: m.cellWidth, height: row0).insetBy(dx: 1, dy: 2)
+            let rect = NSRect(x: x(d), y: top0, width: m.cellWidth, height: row0).insetBy(dx: 1, dy: 2)
             let level = heatLevel(t, peak: peak)
             if let fill = GridStyle.totalFill(level: level) {
                 fill.setFill()
@@ -373,27 +410,37 @@ final class GridFooterView: GridPaneView {
 
         // Week and weekend spans (summed over all their days, even those
         // scrolled out of view).
-        guard !days.isEmpty else { return }
-        var w = model.dayIndex(of: model.date(at: days.lowerBound).monday)
-        while w < days.upperBound {
-            let monday = model.date(at: w)
-            let weekdays = model.log.total(over: DayRange(from: monday, to: monday.adding(days: 4)),
-                                           settings: model.settings, includes: { model.countsInTotals($0) })
-            let weekend = model.log.total(over: DayRange(from: monday.adding(days: 5), to: monday.adding(days: 6)),
-                                          settings: model.settings, includes: { model.countsInTotals($0) })
-            drawSpan(weekdays, peak: model.settings.weekPeak,
-                     rect: NSRect(x: x(w), y: row0, width: 5 * m.cellWidth, height: row1))
-            drawSpan(weekend, peak: model.settings.weekendPeak,
-                     rect: NSRect(x: x(w + 5), y: row0, width: 2 * m.cellWidth, height: row1))
-            w += 7
+        if !days.isEmpty {
+            var w = model.dayIndex(of: model.date(at: days.lowerBound).monday)
+            while w < days.upperBound {
+                let monday = model.date(at: w)
+                let weekdays = model.log.total(over: DayRange(from: monday, to: monday.adding(days: 4)),
+                                               settings: model.settings, includes: { model.countsInTotals($0) })
+                let weekend = model.log.total(over: DayRange(from: monday.adding(days: 5), to: monday.adding(days: 6)),
+                                              settings: model.settings, includes: { model.countsInTotals($0) })
+                drawSpan(weekdays, peak: model.settings.weekPeak,
+                         rect: NSRect(x: x(w), y: top0 + row0, width: 5 * m.cellWidth, height: row1))
+                drawSpan(weekend, peak: model.settings.weekendPeak,
+                         rect: NSRect(x: x(w + 5), y: top0 + row0, width: 2 * m.cellWidth, height: row1))
+                w += 7
+            }
+        }
+
+        if model.outlineWorkingWeek {
+            GridStyle.drawWorkingWeekLines(days: (days.lowerBound - 1)..<(days.upperBound + 1),
+                                           date: { model.date(at: $0) }, x: { x($0) },
+                                           top: 0, height: bounds.height)
         }
 
         NSColor.separatorColor.setFill()
         NSRect(x: 0, y: 0, width: bounds.width, height: 1).fill()
+        if top0 > 0 {
+            NSRect(x: 0, y: top0 - 0.5, width: bounds.width, height: 1).fill()
+        }
     }
 
     private func drawSpan(_ total: Int, peak: Int, rect: NSRect) {
-        let r = rect.insetBy(dx: 1, dy: 2)
+        let r = rect.insetBy(dx: 2.5, dy: 2)
         let level = heatLevel(total, peak: peak)
         if let fill = GridStyle.totalFill(level: level) {
             fill.setFill()
@@ -418,21 +465,34 @@ final class GridFooterView: GridPaneView {
     }
 }
 
-/// Beside the totals: what the two rows are, and which projects they add up.
+/// Beside the totals: the programme names of the subtotal rows, what the
+/// two total rows are, and which projects they add up.
 @MainActor
 final class GridFooterCornerView: GridPaneView {
     override func draw(_ dirtyRect: NSRect) {
         guard let model else { return }
+        let m = metrics
         NSColor.windowBackgroundColor.setFill()
         bounds.fill()
+        let sub = GridMetrics.subtotalRowHeight
+        for (i, programme) in m.footerProgrammes.enumerated() {
+            let y = CGFloat(i) * sub
+            let title = programme.isEmpty ? ProjectList.noProgrammeTitle : programme
+            GridStyle.drawLine(title, in: NSRect(x: 8, y: y, width: bounds.width - 16, height: sub),
+                               font: GridStyle.rowSecondaryFont, color: .secondaryLabelColor, alignment: .right)
+            NSColor.separatorColor.withAlphaComponent(0.35).setFill()
+            NSRect(x: 0, y: y + sub - 0.5, width: bounds.width, height: 0.5).fill()
+        }
+        let top0 = m.totalsTop
         let row0 = GridMetrics.footerRows[0], row1 = GridMetrics.footerRows[1]
         let scope = model.totalsScope == .visible ? "shown" : "all"
-        GridStyle.drawLine("Daily total (\(scope)) \u{25BE}", in: NSRect(x: 8, y: 0, width: bounds.width - 16, height: row0),
+        GridStyle.drawLine("Daily total (\(scope)) \u{25BE}", in: NSRect(x: 8, y: top0, width: bounds.width - 16, height: row0),
                            font: GridStyle.headerBoldFont, color: .secondaryLabelColor, alignment: .right)
-        GridStyle.drawLine("Mon\u{2013}Fri \u{00B7} weekend", in: NSRect(x: 8, y: row0, width: bounds.width - 16, height: row1),
+        GridStyle.drawLine("Mon\u{2013}Fri \u{00B7} weekend", in: NSRect(x: 8, y: top0 + row0, width: bounds.width - 16, height: row1),
                            font: GridStyle.headerFont, color: .secondaryLabelColor, alignment: .right)
         NSColor.separatorColor.setFill()
         NSRect(x: 0, y: 0, width: bounds.width, height: 1).fill()
+        if top0 > 0 { NSRect(x: 0, y: top0 - 0.5, width: bounds.width, height: 1).fill() }
         NSRect(x: bounds.width - 1, y: 0, width: 1, height: bounds.height).fill()
     }
 

@@ -126,6 +126,19 @@ final class AppModel {
     var showProgrammeSubtotals: Bool = Prefs.showProgrammeSubtotals {
         didSet { Prefs.showProgrammeSubtotals = showProgrammeSubtotals; bump() }
     }
+    /// Lines down the left of Mondays and the right of Fridays.
+    var outlineWorkingWeek: Bool = Prefs.outlineWorkingWeek {
+        didSet { Prefs.outlineWorkingWeek = outlineWorkingWeek; bump() }
+    }
+    /// A row per programme above the totals.
+    var showFooterSubtotals: Bool = Prefs.footerSubtotals {
+        didSet { Prefs.footerSubtotals = showFooterSubtotals; bump() }
+    }
+    /// Notes shown in a callout when a cell is clicked or hovered over
+    /// (otherwise in a plain tooltip).
+    var noteCallouts: Bool = Prefs.noteCallouts {
+        didSet { Prefs.noteCallouts = noteCallouts; bump() }
+    }
     var isoWeekFallback: Bool = Prefs.isoWeekFallback {
         didSet { Prefs.isoWeekFallback = isoWeekFallback; bump() }
     }
@@ -485,6 +498,23 @@ final class AppModel {
     func programmeTotal(_ programme: String, on date: LocalDate) -> Int {
         log.total(on: date, settings: settings) { key in
             self.includedSet.contains(key) && self.groupOfProject[key] == programme
+        }
+    }
+
+    /// The programmes with a subtotal row above the totals: those with at
+    /// least one project that counts in the totals, in programme order,
+    /// then No Programme (""). Empty when the rows are switched off.
+    var footerProgrammes: [String] {
+        guard showFooterSubtotals else { return [] }
+        let counted = Set(projectList.projects.filter { countsInTotals($0.key) }.map { projectList.group(of: $0) })
+        return (projectList.programmeNames + [""]).filter { counted.contains($0) }
+    }
+
+    /// A programme's workload on `date`, over the projects that count in
+    /// the totals.
+    func programmeFooterTotal(_ programme: String, on date: LocalDate) -> Int {
+        log.total(on: date, settings: settings) { key in
+            self.countsInTotals(key) && self.groupOfProject[key] == programme
         }
     }
 

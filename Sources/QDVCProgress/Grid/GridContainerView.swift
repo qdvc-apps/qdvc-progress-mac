@@ -127,7 +127,7 @@ final class GridContainerView: NSView {
         if let start = lastRangeStart, metrics.cellWidth > 0 {
             anchorOrdinal = Double(start.ordinal) + Double(clip.bounds.minX / metrics.cellWidth)
         }
-        let oldLeftWidth = metrics.leftWidth
+        let oldLeftWidth = metrics.leftWidth, oldFooterHeight = metrics.footerHeight
         metrics = GridMetrics(model: model)
         lastRevision = model.revision
         lastRangeStart = model.rangeStart
@@ -139,8 +139,9 @@ final class GridContainerView: NSView {
                 scrollBody(to: NSPoint(x: x, y: clip.bounds.minY))
             }
         }
-        if oldLeftWidth != metrics.leftWidth { needsLayout = true }
+        if oldLeftWidth != metrics.leftWidth || oldFooterHeight != metrics.footerHeight { needsLayout = true }
         body.needsDisplay = true
+        body.refreshCallout()
         for pane in [header, left, footer, corner, footerCorner] as [GridPaneView] { pane.needsDisplay = true }
         body.window?.invalidateCursorRects(for: corner)
     }
@@ -189,6 +190,8 @@ final class GridContainerView: NSView {
 
     @objc private func clipBoundsChanged(_ note: Notification) {
         syncPanes()
+        // A callout would be left pointing at the wrong place.
+        if body.callout.isShown { body.callout.close() }
         guard !isAdjusting else { return }
         // Grow the range of days when scrolling near either end.
         let b = scrollView.contentView.bounds

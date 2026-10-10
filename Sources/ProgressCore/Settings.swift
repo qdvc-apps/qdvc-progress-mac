@@ -79,7 +79,7 @@ public struct WorkloadSettings: Equatable {
         case .meeting: return sizeValues[meetingSize.sizeIndex ?? 2]
         case .due: return dueValue
         case .planned: return plannedValue
-        default: return 0
+        default: return 0   // tick, cross, info
         }
     }
 

@@ -34,7 +34,7 @@ enum GridStyle {
         NSColor(hex: 0x10275C),   // XL, navy
     ]
     static let meetingFill = NSColor(hex: 0x2EDB4F)
-    static let dueFill = NSColor(hex: 0xFFB020)
+    static let workingWeekLine = NSColor.labelColor
     static let plannedStroke = NSColor(hex: 0x5A9BDB)
     static let noteMarker = NSColor(hex: 0xE5484D)
     static let todayYellow = NSColor(hex: 0xFFD60A)
@@ -45,9 +45,60 @@ enum GridStyle {
         if let i = label.sizeIndex { return sizeFills[i] }
         switch label {
         case .meeting: return meetingFill
-        case .due: return dueFill
         default: return nil
         }
+    }
+
+    // MARK: Emblems
+
+    /// The colour of an emblem's circle: amber for a due date, green for a
+    /// tick, red for a cross, blue for information.
+    static func emblemColor(_ label: CellLabel) -> NSColor? {
+        switch label {
+        case .due: return NSColor(hex: 0xFF9500)
+        case .tick: return NSColor(hex: 0x28B44A)
+        case .cross: return NSColor(hex: 0xE5372B)
+        case .info: return NSColor(hex: 0x0A7AFF)
+        default: return nil
+        }
+    }
+
+    /// The SF Symbol drawn for an emblem.
+    static func emblemSymbol(_ label: CellLabel) -> String? {
+        switch label {
+        case .due: return "exclamationmark.circle.fill"
+        case .tick: return "checkmark.circle.fill"
+        case .cross: return "xmark.circle.fill"
+        case .info: return "info.circle.fill"
+        default: return nil
+        }
+    }
+
+    private static var emblemImages: [String: NSImage] = [:]
+
+    /// The emblem as a white symbol on a coloured circle, `size` points high.
+    static func emblemImage(_ label: CellLabel, size: CGFloat, dimmed: Bool = false) -> NSImage? {
+        guard let name = emblemSymbol(label), let color = emblemColor(label) else { return nil }
+        let cacheKey = "\(label.rawValue)|\(size)|\(dimmed)"
+        if let cached = emblemImages[cacheKey] { return cached }
+        let tint = dimmed ? color.withAlphaComponent(0.45) : color
+        let config = NSImage.SymbolConfiguration(pointSize: size, weight: .semibold)
+            .applying(NSImage.SymbolConfiguration(paletteColors: [.white, tint]))
+        guard let image = NSImage(systemSymbolName: name, accessibilityDescription: label.title)?
+            .withSymbolConfiguration(config) else { return nil }
+        emblemImages[cacheKey] = image
+        return image
+    }
+
+    /// Draws the emblem centred in `rect`, on no background.
+    static func drawEmblem(_ label: CellLabel, in rect: NSRect, dimmed: Bool) {
+        let side = max(8, min(rect.width, rect.height) - 5)
+        guard let image = emblemImage(label, size: side * 0.82, dimmed: dimmed) else { return }
+        let size = image.size
+        let scale = min(side / max(size.width, 1), side / max(size.height, 1))
+        let w = size.width * scale, h = size.height * scale
+        let target = NSRect(x: rect.midX - w / 2, y: rect.midY - h / 2, width: w, height: h)
+        image.draw(in: target, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
     }
 
     static func text(for label: CellLabel) -> NSColor {
@@ -74,8 +125,10 @@ enum GridStyle {
         fill(for: label).map(Color.init(nsColor:)) ?? Color.clear
     }
 
+    /// Dark text on the light chips, white on the dark ones, and the
+    /// secondary colour where there is no chip (so it reads in Dark Mode).
     static func swiftUIText(for label: CellLabel) -> Color {
-        Color(nsColor: text(for: label))
+        fill(for: label) == nil ? Color.secondary : Color(nsColor: text(for: label))
     }
 
     // MARK: Fonts and text
@@ -88,7 +141,7 @@ enum GridStyle {
     static let monthFont = NSFont.systemFont(ofSize: 12, weight: .bold)
     static let rowFont = NSFont.systemFont(ofSize: 12)
     static let rowSecondaryFont = NSFont.systemFont(ofSize: 11)
-    static let codeFont = NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .medium)
+    static let codeFont = NSFont.monospacedSystemFont(ofSize: 11, weight: .medium)
     static let programmeFont = NSFont.systemFont(ofSize: 12, weight: .bold)
     static let italicFont: NSFont = NSFontManager.shared.convert(NSFont.systemFont(ofSize: 10.5), toHaveTrait: .italicFontMask)
     static let italicRowFont: NSFont = NSFontManager.shared.convert(NSFont.systemFont(ofSize: 12), toHaveTrait: .italicFontMask)
@@ -117,6 +170,23 @@ enum GridStyle {
 
     static func textWidth(_ text: String, font: NSFont) -> CGFloat {
         (text as NSString).size(withAttributes: [.font: font]).width
+    }
+
+    /// The working-week outline: a line down the left of each Monday and the
+    /// right of each Friday, centred on the column boundary so every column
+    /// keeps the same width. `days` should reach one day past what is shown
+    /// on each side, so lines on the edges are not missed.
+    static func drawWorkingWeekLines(days: Range<Int>, date: (Int) -> LocalDate, x: (Int) -> CGFloat,
+                                     top: CGFloat, height: CGFloat) {
+        guard height > 0 else { return }
+        workingWeekLine.setFill()
+        for d in days {
+            switch date(d).isoWeekday {
+            case 1: NSRect(x: x(d) - 0.75, y: top, width: 1.5, height: height).fill()
+            case 5: NSRect(x: x(d + 1) - 0.75, y: top, width: 1.5, height: height).fill()
+            default: break
+            }
+        }
     }
 
     /// Diagonal hatching over `rect`, for inactive days.

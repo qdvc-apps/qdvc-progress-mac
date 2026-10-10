@@ -38,6 +38,13 @@ prints the compiler and macOS SDK versions, and warns when the SDK is older
 than 26 (no Liquid Glass). An explicit `DEVELOPER_DIR` is respected. The
 same block is used in the other QDVC macOS apps; keep them in step.
 
+AppKit decides on Liquid Glass from the SDK version recorded in the
+executable's `LC_BUILD_VERSION`. `swift build` records the deployment target
+there (`sdk 14.0`), so after copying the executable into the bundle the
+script rewrites that field with `vtool -set-build-version macos <minos>
+<sdk> -replace` to the SDK it built with, before signing. Check with
+`vtool -show-build`.
+
 ### 1.1 App icon
 
 `tools/make_icon.py` writes `Resources/AppIcon.svg` and
@@ -76,8 +83,9 @@ states), `InspectorView`, `Sheets`, `WeekLabelsSheet`, `SettingsView`,
 `Prefs`, `Platform`; and in `Grid/`: `GridContainerView` (the scroll view,
 frozen panes, range growth, SwiftUI wrapper), `GridBodyView` (cells,
 mouse, keyboard, Edit menu, tooltips), `GridPanes` (header, left columns,
-column headings, totals), `GridMenus` (context menus), `GridMetrics`,
-`GridStyle` (colours, fonts, drawing helpers).
+column headings, totals), `GridMenus` (context menus), `NoteCallout`
+(the note callout balloon and its hover timing), `GridMetrics`, `GridStyle`
+(colours, emblems, fonts, drawing helpers).
 
 ### 2.1 How the grid stays in sync
 

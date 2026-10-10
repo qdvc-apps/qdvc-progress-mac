@@ -7,6 +7,7 @@ import ProgressCore
 struct GridMetrics {
     static let headerRows: [CGFloat] = [22, 20, 17, 18]   // month, week, day, weekday
     static let footerRows: [CGFloat] = [22, 22]           // daily totals, week and weekend
+    static let subtotalRowHeight: CGFloat = 18            // one per programme, above the totals
     static let rowHeight: CGFloat = 22
     static let programmeRowHeight: CGFloat = 26
 
@@ -18,7 +19,11 @@ struct GridMetrics {
     var rowTops: [CGFloat] = [0]
 
     var headerHeight: CGFloat { GridMetrics.headerRows.reduce(0, +) }
-    var footerHeight: CGFloat { GridMetrics.footerRows.reduce(0, +) }
+    /// The programmes with a subtotal row above the totals.
+    var footerProgrammes: [String] = []
+    /// The top of the daily totals row within the footer.
+    var totalsTop: CGFloat { CGFloat(footerProgrammes.count) * GridMetrics.subtotalRowHeight }
+    var footerHeight: CGFloat { totalsTop + GridMetrics.footerRows.reduce(0, +) }
     var leftWidth: CGFloat { columns.last.map { $0.x + $0.width } ?? 0 }
     var contentWidth: CGFloat { CGFloat(dayCount) * cellWidth }
     var contentHeight: CGFloat { rowTops.last ?? 0 }
@@ -31,6 +36,7 @@ struct GridMetrics {
     init(model: AppModel) {
         cellWidth = CGFloat(model.cellWidth)
         dayCount = model.dayCount
+        footerProgrammes = model.footerProgrammes
         var x: CGFloat = 0
         for c in model.visibleColumns {
             let w = CGFloat(model.width(of: c))

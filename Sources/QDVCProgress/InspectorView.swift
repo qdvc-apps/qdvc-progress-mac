@@ -69,7 +69,7 @@ struct DayInspector: View {
                 } header: {
                     Text("Special")
                 } footer: {
-                    Text("Type m for a meeting, ! for a due date, p for planned work.")
+                    Text("Type m for a meeting, p for planned work, ! for a due date, v for a tick, x for a cross, ? for information. Emblems add nothing to the totals.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
 
@@ -149,8 +149,12 @@ struct LabelButtons: View {
                     model.setLabel(label)
                 } label: {
                     VStack(spacing: 1) {
-                        Text(label?.text ?? "None")
-                            .font(.system(size: 12, weight: .semibold))
+                        if let label, label.isEmblem {
+                            EmblemImage(label: label, size: 15)
+                        } else {
+                            Text(label?.text ?? "None")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
                         Text(label.map { "\(model.settings.value(of: $0))" } ?? "\u{2013}")
                             .font(.system(size: 9).monospacedDigit())
                             .opacity(0.75)
@@ -159,7 +163,8 @@ struct LabelButtons: View {
                     .foregroundStyle(label.map { GridStyle.swiftUIText(for: $0) } ?? Color.secondary)
                     .background {
                         RoundedRectangle(cornerRadius: 6)
-                            .fill(label.map { GridStyle.swiftUIFill(for: $0) } ?? Color.secondary.opacity(0.08))
+                            .fill(label.flatMap { GridStyle.fill(for: $0) }.map { Color(nsColor: $0) }
+                                  ?? Color.secondary.opacity(0.08))
                     }
                     .overlay {
                         if label == .planned {
@@ -182,6 +187,23 @@ struct LabelButtons: View {
     }
 }
 
+/// An emblem label (due date, tick, cross, information) as in the grid: a
+/// white symbol on a coloured circle.
+struct EmblemImage: View {
+    let label: CellLabel
+    let size: CGFloat
+
+    var body: some View {
+        if let symbol = GridStyle.emblemSymbol(label), let color = GridStyle.emblemColor(label) {
+            Image(systemName: symbol)
+                .font(.system(size: size, weight: .semibold))
+                .symbolRenderingMode(.palette)
+                .foregroundStyle(Color.white, Color(nsColor: color))
+                .accessibilityLabel(label.title)
+        }
+    }
+}
+
 // MARK: - Project
 
 struct ProjectInspector: View {
@@ -194,7 +216,11 @@ struct ProjectInspector: View {
                 Section {
                     TextField("Title", text: field(key, "title", \.title), prompt: Text("Required"))
                     TextField("ID", text: field(key, "code", \.code), prompt: Text("e.g. 26XY"))
-                    if !p.code.isEmpty && !Project.isConventionalCode(p.code) {
+                        .font(.system(.body, design: .monospaced))
+                    if let other = model.projectList.project(withCode: p.code, excluding: key) {
+                        Text("\u{201C}\(other.title)\u{201D} already has this ID. Each ID should be used once.")
+                            .font(.caption).foregroundStyle(.red)
+                    } else if !p.code.isEmpty && !Project.isConventionalCode(p.code) {
                         Text("IDs usually take the form NNXX: two digits, then two letters.")
                             .font(.caption).foregroundStyle(.secondary)
                     }

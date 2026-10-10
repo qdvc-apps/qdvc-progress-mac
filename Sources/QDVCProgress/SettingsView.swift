@@ -90,6 +90,14 @@ struct WorkloadSettingsView: View {
                             Text("\(model.settings.plannedValue)").monospacedDigit()
                         }
                     }
+                    HStack {
+                        SizeChip(label: .tick)
+                        SizeChip(label: .cross)
+                        SizeChip(label: .info)
+                        Text("Tick, cross and information")
+                        Spacer()
+                        Text("0").monospacedDigit().foregroundStyle(.secondary)
+                    }
                 }
 
                 Section {
@@ -119,6 +127,15 @@ struct SizeChip: View {
     let label: CellLabel
 
     var body: some View {
+        if label.isEmblem {
+            EmblemImage(label: label, size: 13)
+                .frame(width: 30, height: 18)
+        } else {
+            chip
+        }
+    }
+
+    private var chip: some View {
         Text(label.text)
             .font(.system(size: 10, weight: .semibold))
             .frame(width: 30, height: 18)
@@ -159,18 +176,27 @@ struct GeneralSettingsView: View {
     var body: some View {
         @Bindable var model = model
         Form {
-            Toggle("Reopen the last workspace at launch", isOn: $model.reopenLast)
-            Toggle("Show week numbers for weeks without a label", isOn: $model.isoWeekFallback)
-            Toggle("Show programme subtotals in programme headings", isOn: $model.showProgrammeSubtotals)
-            Picker("Totals add up", selection: $model.totalsScope) {
-                ForEach(TotalsScope.allCases) { s in Text(s.title).tag(s) }
+            Section {
+                Toggle("Reopen the last workspace at launch", isOn: $model.reopenLast)
             }
-            LabeledContent("Day column width") {
-                Slider(value: $model.cellWidth, in: Prefs.cellWidthRange, step: 2)
-                    .frame(width: 200)
+            Section("Grid") {
+                Toggle("Outline the working week (Monday to Friday)", isOn: $model.outlineWorkingWeek)
+                Toggle("Show week numbers for weeks without a label", isOn: $model.isoWeekFallback)
+                Toggle("Show notes in a callout on click and hover", isOn: $model.noteCallouts)
+                LabeledContent("Day column width") {
+                    Slider(value: $model.cellWidth, in: Prefs.cellWidthRange, step: 2)
+                        .frame(width: 200)
+                }
+            }
+            Section("Totals") {
+                Picker("Totals add up", selection: $model.totalsScope) {
+                    ForEach(TotalsScope.allCases) { s in Text(s.title).tag(s) }
+                }
+                Toggle("Show programme subtotals above the totals", isOn: $model.showFooterSubtotals)
+                Toggle("Show programme subtotals in programme headings", isOn: $model.showProgrammeSubtotals)
             }
         }
         .formStyle(.grouped)
-        .frame(minHeight: 300)
+        .frame(minHeight: 420)
     }
 }

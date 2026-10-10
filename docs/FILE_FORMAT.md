@@ -48,7 +48,7 @@ day_peak: 15
 | --- | --- |
 | `sizes` | The number each work size adds to the totals. Presets in the app: Linear 1–5 (default), Fibonacci 1, 2, 3, 5, 8, Doubling 1, 2, 4, 8, 16. Any whole numbers are allowed. |
 | `meeting_size` | The size a meeting (`mtg`) counts as. |
-| `due_value`, `planned_value` | What `(!)` and `(P)` add (normally 0). |
+| `due_value`, `planned_value` | What `(!)` and `(P)` add (normally 0). Tick, cross and information always add 0. |
 | `day_peak` | The daily total at which the totals' colour is deepest. Monday–Friday totals peak at 5×, weekends at 2×. |
 
 ## 3. `projects.yml`
@@ -116,9 +116,11 @@ Next meeting in two weeks"
   cells are not written; a month with no entries has no file.
 - `date` is `yyyy-mm-dd` and must fall in the file's month. `project` is a
   project `key` (§3).
-- `label` is one of `XS`, `S`, `M`, `L`, `XL`, `mtg`, `(!)`, `(P)`, or empty
-  for a note on its own. On reading, case and brackets are forgiven (`xs`,
-  `!`, `p`).
+- `label` is one of `XS`, `S`, `M`, `L`, `XL`, `mtg`, `(P)`, or one of the
+  emblems `(!)` (due date), `(ok)` (tick), `(x)` (cross), `(i)`
+  (information), or empty for a note on its own. On reading, case and
+  brackets are forgiven (`xs`, `!`, `p`, `ok`, `x`, `i`), and `✓`, `✔`, `✗`,
+  `✘` and `×` are read as tick and cross.
 - `note` is free text and may span lines.
 - Rows are sorted by date, then by project key. Fields are quoted (with `"`,
   doubled inside) only when they hold a comma, a quote, a line break or

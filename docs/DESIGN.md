@@ -58,6 +58,8 @@ left choosing the view, as in Music or Finder, would be the natural move.
 │ 26AR ARC grant  DP27  │ [M][L]   [mtg]                                │
 │ 25SC Soil carbon …    │ ////// With co-authors ////////               │
 ├ footer corner ────────┼ footer (scrolls horizontally) ─────────────────┤
+│            Research   │  7  4  9        3                              │
+│            Teaching   │  5  5  5  3  5                                 │
 │ Daily total (shown) ▾ │ 12  9 14  3  8  0  2                           │
 │ Mon–Fri · weekend     │ [      46       ][ 2 ]                         │
 └───────────────────────┴────────────────────────────────────────────────┘
@@ -70,9 +72,18 @@ left choosing the view, as in Music or Finder, would be the natural move.
 - The range of days grows when you scroll near either end, so there is no
   "page" to turn. ⌘[ / ⌘] move a week, ⌘T returns to today, ⇧⌘T goes to a
   date.
-- Weeks run Monday to Sunday. Weekends are tinted; Mondays have a stronger
-  line. Today's column is tinted yellow, its header cells solid yellow, its
-  total ringed in yellow.
+- Weeks run Monday to Sunday. Weekends are tinted. The working week is
+  outlined: a 1.5 pt line in the label colour (black, or white in Dark Mode)
+  down the left of each Monday and the right of each Friday, through the
+  header, body and footer (Settings › General › Outline the working week).
+  The lines are centred on the column boundaries and drawn over them, so
+  every day column keeps the same width. Today's column is tinted yellow,
+  its header cells solid yellow, its total ringed in yellow.
+- Above the totals, a subtotal row per programme (those with a project that
+  counts in the totals, in programme order, then No Programme), in a paler
+  version of the totals' heat map (Settings › General › Show programme
+  subtotals above the totals). The programme headings in the body can also
+  show their subtotals; the two settings are separate.
 - Column headings sort (click again to reverse); their edges resize;
   right-click shows or hides ID, Target and Collaborators.
 
@@ -82,8 +93,8 @@ left choosing the view, as in Music or Finder, would be the natural move.
 | --- | --- |
 | XS → XL | single-hue blue heat map: `#CFE8FB` baby blue, `#9CCBF2`, `#5A9BDB`, `#2B5EA8`, `#10275C` navy (white text on L, XL) |
 | mtg | bright green `#2EDB4F` |
-| (!) | amber `#FFB020` |
 | (P) | no fill, dashed blue outline, grey text: not yet done |
+| Emblems | a white symbol on a coloured circle, on a blank cell (SF Symbols): due date `!` amber `#FF9500`, tick green `#28B44A`, cross red `#E5372B`, information `i` blue `#0A7AFF`. They add 0 to the totals. |
 | Totals | salmon `#FFE3D8` → red `#C62F2F`, by the total's share of the peak (Settings › Workload) |
 | Today | yellow `#FFD60A` |
 | Note | red corner triangle `#E5484D`, as in Excel and Numbers |
@@ -98,10 +109,16 @@ The colours are in `GridStyle.swift` and the icon generator.
   select that day for every project shown, a week label for the whole week;
   click a project title to select its row's cell on the same day (and show
   the Project tab).
-- **Typing** (grid focused): 1–5 = XS–XL, m = mtg, ! = (!), p = (P),
-  0 / Delete = clear, i = toggle inactive days, Return = edit note,
+- **Typing** (grid focused): 1–5 = XS–XL, m = mtg, p = (P), ! = due date,
+  v = tick, x = cross, ? = information, 0 / Delete = clear, i = toggle inactive days, Return = edit note,
   Space = inspector, arrows / Tab move, ⇧ extends, ⌥←/→ jump a week,
   Esc collapses the selection. The Day menu repeats these with ⌥⌘ shortcuts.
+- **Notes** show in a callout balloon beside the cell (Settings › General ›
+  Show notes in a callout): at once when a cell with a note is clicked,
+  staying until another cell is clicked, a key is pressed, the grid scrolls
+  or loses the focus; or 0.5 s after the pointer comes to rest on such a
+  cell, going 0.3 s after it leaves. Long notes scroll inside the callout.
+  With callouts off, the note is in the cell's tooltip.
 - **Copy / Cut / Paste** use the standard Edit menu. The clipboard carries
   the app's own type (labels and notes) plus tab-separated labels for other
   apps; text from a spreadsheet pastes as labels, and other text as a note.
@@ -146,7 +163,10 @@ overwritten.
 | Question | Decision |
 | --- | --- |
 | What is the custom week label? | Free text per week, set by pasting two spreadsheet columns (a date in the week, the label) into File › Week Labels…, with a live preview; or by double-clicking a week. Unlabelled weeks show W41 (can be turned off). |
-| Can a cell hold a size and a special label? | No: one label per cell (XS–XL, mtg, (!), (P)), plus an optional note. Inactive days are separate, so an inactive day can still carry a label. |
+| Can a cell hold a size and a special label? | No: one label per cell (XS–XL, mtg, (P), or an emblem: due date, tick, cross, information), plus an optional note. Inactive days are separate, so an inactive day can still carry a label. |
 | What do totals add up when filtered? | The projects shown (filter and search), with View › Totals Add Up › All Projects to switch. Collapsed programmes still count. |
 | Navigation | One window: grid + inspector, no tab bar or sidebar (§2). |
 | Storage | YAML for settings and projects, CSV for the log (one file per month) and week labels (FILE_FORMAT.md). |
+| Emblem files and keys | Written `(!)`, `(ok)`, `(x)`, `(i)` in the log; typed !, v, x, ? (i stays "inactive days"). |
+| Project IDs | Unique: New Project refuses an ID another project has (ignoring case); the inspector warns if an edit makes one a duplicate. IDs show in a monospaced font. |
+| Liquid Glass | `swift build` records the deployment target as the SDK version in the binary, so AppKit kept the classic look; `scripts/build-app.sh` rewrites the field with `vtool` to the SDK actually used. |

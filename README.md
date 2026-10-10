@@ -21,24 +21,29 @@ and its precedents in Numbers, Calendar and Finder are explained in
 - **Header:** the month and year, your own label for each week (a teaching
   week, a sprint, a holiday; unlabelled weeks show their week number), the
   day of the month and the day of the week (M, Tu, W, Th, Fr, Sa, Su).
-  Today is highlighted in yellow. The header, the project columns and the
-  totals stay put while the days scroll; scroll as far back or ahead as you
-  like.
+  Today is highlighted in yellow, and each working week is outlined by a
+  line down the left of Monday and the right of Friday (Settings can turn
+  this off). The header, the project columns and the totals stay put while
+  the days scroll; scroll as far back or ahead as you like.
 - **Projects** are grouped under their **programme of work** (click a
   programme heading to fold it). Each has a title and, optionally, an ID
   (such as 26XY), a target and collaborators. Click a column heading to sort
   by it; drag a heading's edge to resize it; right-click to show or hide
   columns.
 - **Day cells** hold one label — **XS S M L XL** in a blue heat map from
-  baby blue to navy, **mtg** in bright green, **(!)** for a due date,
-  **(P)** for planned work — and an optional **note**, marked by a red
-  corner as in a spreadsheet (hover to read it). Days can be marked
+  baby blue to navy, **mtg** in bright green, **(P)** for planned work, or
+  an emblem: an amber **!** for a due date, a green **tick**, a red
+  **cross** or a blue **i** for information — and an optional **note**,
+  marked by a red corner as in a spreadsheet. Click a cell with a note to
+  see it in a callout beside the cell, or hover over it (Settings can turn
+  callouts off, leaving a plain tooltip). Days can be marked
   **inactive**, hatched, with a label shown across the period ("On hold",
   "With co-authors").
 - **Totals** add up each day's labels (XS = 1 … XL = 5 by default; a meeting
-  counts as M) in a salmon-to-red heat map, with a second row for each
-  Monday–Friday and each weekend. They follow the filter, or cover all
-  projects (View › Totals Add Up).
+  counts as M; emblems count 0) in a salmon-to-red heat map, with a second
+  row for each Monday–Friday and each weekend, and above them a subtotal row
+  per programme (which can be turned off). They follow the filter, or cover
+  all projects (View › Totals Add Up).
 - **Filter and sort** from the toolbar: one programme or all, active or
   inactive projects or both, a search over titles, IDs, targets and
   collaborators, and sorting by title, ID, target, collaborators or the day
@@ -50,7 +55,8 @@ and its precedents in Numbers, Calendar and Finder are explained in
 - **Week labels** (File › Week Labels…, ⌥⌘L): paste two columns from a
   spreadsheet — a date in the week and its label — and preview how each row
   is read before applying it. Double-click the week row to label one week.
-- **Settings** (⌘,): the numbers behind the sizes, with three presets
+- **Settings** (⌘,): the working-week outline, note callouts and programme
+  subtotals (General); the numbers behind the sizes, with three presets
   (Linear 1–5, Fibonacci 1-2-3-5-8, Doubling 1-2-4-8-16), what a meeting,
   a due date and planned work count as, and where the totals colour peaks.
   These are saved in the workspace.
@@ -65,8 +71,9 @@ Select a cell (or drag across several) and type:
 | --- | --- |
 | 1 2 3 4 5 | XS S M L XL |
 | m | mtg |
-| ! | (!) due date |
 | p | (P) planned |
+| ! | due date emblem |
+| v / x / ? | tick / cross / information emblem |
 | 0, Delete | no label |
 | i | inactive / active days |
 | Return, double-click | edit the note in the inspector (Esc returns to the grid) |
@@ -91,6 +98,13 @@ From the repository root:
 scripts/build-app.sh            # build "build/QDVC Progress.app" (release)
 scripts/build-app.sh --install  # …and copy it to ~/Applications
 ```
+
+`scripts/build-app.sh` also records the macOS SDK it built with in the app's
+binary, which is what turns on Liquid Glass (`swift build` alone writes the
+deployment target there, 14.0, so a `swift run` build keeps the classic
+look). Check a build with
+`vtool -show-build "build/QDVC Progress.app/Contents/MacOS/QDVCProgress"`:
+`sdk` should be 26.0 or later.
 
 `scripts/build-app.sh` builds with Xcode's toolchain even when
 `xcode-select` points at the Command Line Tools: it picks the newest Xcode

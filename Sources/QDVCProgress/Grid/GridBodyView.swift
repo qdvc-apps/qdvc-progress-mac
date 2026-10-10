@@ -26,12 +26,14 @@ final class GridBodyView: NSView, NSMenuItemValidation {
     }
 
     override func resignFirstResponder() -> Bool {
+        callout.close()
         needsDisplay = true
         return true
     }
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
+        if window == nil { callout.close() }
         if let um = window?.undoManager { model?.undoManager = um }
     }
 
@@ -142,6 +144,10 @@ final class GridBodyView: NSView, NSMenuItemValidation {
     }
 
     private func drawLabel(_ label: CellLabel, in rect: NSRect, dimmed: Bool) {
+        if label.isEmblem {
+            GridStyle.drawEmblem(label, in: rect, dimmed: dimmed)
+            return
+        }
         let chip = rect.insetBy(dx: 1.5, dy: 2)
         let path = NSBezierPath(roundedRect: chip, xRadius: 3, yRadius: 3)
         if let fill = GridStyle.fill(for: label) {
@@ -186,6 +192,11 @@ final class GridBodyView: NSView, NSMenuItemValidation {
             if case .programme = model.rows[r] { major.setFill() } else { minor.setFill() }
             NSRect(x: dirtyRect.minX, y: y - 0.5, width: dirtyRect.width, height: 0.5).fill()
         }
+        if model.outlineWorkingWeek {
+            GridStyle.drawWorkingWeekLines(days: (days.lowerBound - 1)..<(days.upperBound + 1),
+                                           date: { model.date(at: $0) }, x: { m.dayX($0) },
+                                           top: dirtyRect.minY, height: bottom - dirtyRect.minY)
+        }
     }
 
     private func drawSelection(model: AppModel, m: GridMetrics) {
@@ -225,6 +236,7 @@ final class GridBodyView: NSView, NSMenuItemValidation {
         guard let model else { return }
         let p = convert(event.locationInWindow, from: nil)
         guard let ref = cellRef(at: p) else {
+            callout.close()
             // A programme heading: open or close it.
             if let r = metrics.row(at: p.y), r < model.rows.count, case let .programme(name, _, _) = model.rows[r] {
                 model.toggleProgramme(name)
@@ -232,12 +244,15 @@ final class GridBodyView: NSView, NSMenuItemValidation {
             return
         }
         if event.clickCount == 2 {
+            callout.close()
             model.select(ref)
             editNote()
             return
         }
-        model.select(ref, extend: event.modifierFlags.contains(.shift))
+        let extend = event.modifierFlags.contains(.shift)
+        model.select(ref, extend: extend)
         container?.reloadIfNeeded()
+        if extend { callout.close() } else { pinCallout(for: ref) }
         isDragging = true
     }
 
@@ -247,6 +262,7 @@ final class GridBodyView: NSView, NSMenuItemValidation {
         let p = convert(event.locationInWindow, from: nil)
         let clamped = NSPoint(x: min(max(p.x, 0), metrics.contentWidth - 1), y: min(max(p.y, 0), metrics.contentHeight - 1))
         if let ref = cellRef(at: clamped), ref != model.selection?.focus {
+            callout.close()
             model.select(ref, extend: true)
             container?.reloadIfNeeded()
         }
@@ -273,33 +289,86 @@ final class GridBodyView: NSView, NSMenuItemValidation {
         hoverRef = hovered
         removeAllToolTips()
         hoverTip = nil
-        guard let ref = hovered, let model, let row = model.row(of: ref.project) else { return }
+        guard let ref = hovered, let model, let row = model.row(of: ref.project) else {
+            callout.hoverEnded()
+            return
+        }
         let cell = model.cell(ref)
         let project = model.project(ref.project)
+        let rect = metrics.cellRect(row: row, day: model.dayIndex(of: ref.date))
+
+        // The note: in a callout, or (with callouts off) in the tooltip.
+        let useCallout = model.noteCallouts && cell.hasNote
+        if useCallout, let content = calloutContent(for: ref) {
+            callout.hover(content, for: ref, at: rect, in: self)
+        } else {
+            callout.hoverEnded()
+        }
+
         var lines: [String] = []
         if let period = project?.inactivePeriod(on: ref.date) {
             let label = period.label.isEmpty ? "Inactive" : "Inactive: \(period.label)"
             lines.append("\(label) (\(GridStyle.range(period.range)))")
         }
-        if cell.hasNote { lines.append(cell.note) }
+        if cell.hasNote && !useCallout { lines.append(cell.note) }
         guard !lines.isEmpty else { return }
         let title = "\(project?.title ?? ref.project) \u{00B7} \(GridStyle.longDay(ref.date))"
-            + (cell.label.map { " \u{00B7} \($0.text)" } ?? "")
+            + (cell.label.map { " \u{00B7} \($0.title)" } ?? "")
         let tip = ([title] + lines).joined(separator: "\n") as NSString
         hoverTip = tip
-        _ = addToolTip(metrics.cellRect(row: row, day: model.dayIndex(of: ref.date)), owner: tip, userData: nil)
+        _ = addToolTip(rect, owner: tip, userData: nil)
     }
 
     override func mouseExited(with event: NSEvent) {
         hoverRef = nil
         removeAllToolTips()
         hoverTip = nil
+        callout.hoverEnded()
+    }
+
+    // MARK: Note callouts
+
+    lazy var callout = NoteCalloutController()
+
+    private func calloutContent(for ref: CellRef) -> NoteCalloutContent? {
+        guard let model else { return nil }
+        let cell = model.cell(ref)
+        guard cell.hasNote else { return nil }
+        var subtitle = GridStyle.longDay(ref.date)
+        if let label = cell.label { subtitle += " \u{00B7} \(label.title)" }
+        return NoteCalloutContent(title: model.project(ref.project)?.title ?? ref.project,
+                                  subtitle: subtitle, note: cell.note)
+    }
+
+    /// Shows the selected cell's note in a callout that stays until
+    /// dismissed (after a click).
+    private func pinCallout(for ref: CellRef) {
+        guard let model, model.noteCallouts, let row = model.row(of: ref.project),
+              let content = calloutContent(for: ref) else {
+            callout.close()
+            return
+        }
+        callout.show(content, for: ref, at: metrics.cellRect(row: row, day: model.dayIndex(of: ref.date)),
+                     in: self, pinned: true)
+    }
+
+    /// After a reload: closes a callout whose cell is gone, has lost its note
+    /// or had it changed, or when callouts are switched off.
+    func refreshCallout() {
+        guard callout.isShown, let ref = callout.ref else { return }
+        guard let model, model.noteCallouts, model.row(of: ref.project) != nil,
+              calloutContent(for: ref) == callout.content else {
+            callout.close()
+            return
+        }
+        if callout.isPinned && model.selection?.focus != ref { callout.close() }
     }
 
     // MARK: Keyboard
 
     override func keyDown(with event: NSEvent) {
         guard let model else { return }
+        callout.close()
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         if flags.contains(.command) || flags.contains(.control) {
             super.keyDown(with: event)
@@ -391,6 +460,7 @@ final class GridBodyView: NSView, NSMenuItemValidation {
         guard let model else { return nil }
         let p = convert(event.locationInWindow, from: nil)
         guard let ref = cellRef(at: p) else { return nil }
+        callout.close()
         window?.makeFirstResponder(self)
         if !model.selectedRefs.contains(ref) { model.select(ref) }
         return GridMenus.cellMenu(model: model, onEditNote: { [weak self] in self?.editNote() })

@@ -77,6 +77,23 @@ echo "==> Assembling $app"
 rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 cp "$bin_dir/QDVCProgress" "$app/Contents/MacOS/QDVCProgress"
+
+# Liquid Glass. AppKit gives an app the new look only if it was linked
+# against the macOS 26 SDK or later, which it reads from the "sdk" field of
+# the binary's LC_BUILD_VERSION load command. `swift build` writes the
+# deployment target there instead (minos 14.0, sdk 14.0), so the app ran
+# with the classic look whatever SDK it was built with. Record the SDK the
+# build really used (the binary is re-signed below).
+bin="$app/Contents/MacOS/QDVCProgress"
+build_field() { xcrun vtool -show-build "$bin" 2>/dev/null | awk -v k="$1" '$1 == k { print $2; exit }'; }
+minos="$(build_field minos)"
+linked_sdk="$(build_field sdk)"
+if [[ "$sdk" =~ ^[0-9]+(\.[0-9]+)*$ ]] && [[ -n "$minos" ]] && [[ "$linked_sdk" != "$sdk" ]]; then
+    echo "==> Recording macOS SDK $sdk in the binary (the linker wrote ${linked_sdk:-nothing})"
+    xcrun vtool -set-build-version macos "$minos" "$sdk" -replace -output "$bin.tmp" "$bin"
+    mv "$bin.tmp" "$bin"
+fi
+echo "==> Binary built for macOS $(build_field minos) and later, with SDK $(build_field sdk)"
 cp Resources/Info.plist "$app/Contents/Info.plist"
 printf 'APPL????' > "$app/Contents/PkgInfo"
 # App icon (regenerate with tools/make_icon.py; Info.plist names it AppIcon).

@@ -15,12 +15,26 @@ public enum CellLabel: String, CaseIterable, Identifiable, Codable {
     case due = "(!)"
     /// Work planned for that day.
     case planned = "(P)"
+    /// Emblems: something done or confirmed, something cancelled or
+    /// refused, and something to note. Like the due date, they are drawn
+    /// as a coloured circle on a blank cell and add nothing to the totals.
+    case tick = "(ok)"
+    case cross = "(x)"
+    case info = "(i)"
 
     public var id: String { rawValue }
 
     /// The five work sizes, smallest first.
     public static let sizes: [CellLabel] = [.xs, .s, .m, .l, .xl]
-    public static let specials: [CellLabel] = [.meeting, .due, .planned]
+    public static let specials: [CellLabel] = [.meeting, .planned, .due, .tick, .cross, .info]
+
+    /// The labels drawn as a coloured circle with a symbol in it.
+    public var isEmblem: Bool {
+        switch self {
+        case .due, .tick, .cross, .info: return true
+        default: return false
+        }
+    }
 
     public var isSize: Bool { sizeIndex != nil }
 
@@ -50,6 +64,9 @@ public enum CellLabel: String, CaseIterable, Identifiable, Codable {
         case .meeting: return "Meeting"
         case .due: return "Due Date"
         case .planned: return "Planned"
+        case .tick: return "Tick"
+        case .cross: return "Cross"
+        case .info: return "Information"
         }
     }
 
@@ -64,12 +81,16 @@ public enum CellLabel: String, CaseIterable, Identifiable, Codable {
         case .meeting: return "m"
         case .due: return "!"
         case .planned: return "p"
+        case .tick: return "v"
+        case .cross: return "x"
+        case .info: return "?"
         }
     }
 
     /// Reads a label as written in a log file or pasted from a spreadsheet.
     /// Case and surrounding brackets or spaces are forgiven, so `xs`, `Mtg`,
-    /// `!`, `due`, `p` and `(p)` are all understood. Nil for anything else.
+    /// `!`, `due`, `p`, `(p)`, `ok`, `✓`, `x` and `i` are all understood.
+    /// Nil for anything else.
     public init?(lenient text: String) {
         let t = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         switch t {
@@ -81,6 +102,9 @@ public enum CellLabel: String, CaseIterable, Identifiable, Codable {
         case "mtg", "meeting": self = .meeting
         case "(!)", "!", "due": self = .due
         case "(p)", "p", "planned", "plan": self = .planned
+        case "(ok)", "ok", "tick", "done", "\u{2713}", "\u{2714}", "(\u{2713})", "(\u{2714})", "(v)": self = .tick
+        case "(x)", "x", "cross", "\u{2717}", "\u{2718}", "\u{00D7}", "(\u{2717})", "(\u{2718})": self = .cross
+        case "(i)", "i", "info", "\u{2139}", "\u{2139}\u{FE0F}": self = .info
         default: return nil
         }
     }

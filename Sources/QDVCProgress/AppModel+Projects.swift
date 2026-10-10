@@ -71,7 +71,7 @@ extension AppModel {
     /// Adds a project and selects it on today (or the focused day).
     func addProject(title: String, code: String, programme: String, target: String, collaborators: String) {
         let t = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !t.isEmpty else { return }
+        guard !t.isEmpty, projectList.project(withCode: code) == nil else { return }
         let key = projectList.newKey(for: t)
         let p = Project(key: key, code: code.trimmingCharacters(in: .whitespaces), title: t,
                         programme: programme, target: target.trimmingCharacters(in: .whitespaces),

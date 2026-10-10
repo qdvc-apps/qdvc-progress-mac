@@ -37,6 +37,12 @@ final class LabelTests: XCTestCase {
         XCTAssertEqual(CellLabel(lenient: "!"), .due)
         XCTAssertEqual(CellLabel(lenient: "(p)"), .planned)
         XCTAssertNil(CellLabel(lenient: "XXL"))
+        XCTAssertEqual(CellLabel(lenient: "(OK)"), .tick)
+        XCTAssertEqual(CellLabel(lenient: "\u{2713}"), .tick)
+        XCTAssertEqual(CellLabel(lenient: "x"), .cross)
+        XCTAssertEqual(CellLabel(lenient: "(i)"), .info)
+        XCTAssertTrue(CellLabel.due.isEmblem)
+        XCTAssertFalse(CellLabel.meeting.isEmblem)
     }
 
     func testWorkloadValues() {
@@ -44,6 +50,9 @@ final class LabelTests: XCTestCase {
         XCTAssertEqual(s.value(of: .xl), 5)
         XCTAssertEqual(s.value(of: .meeting), 3)
         XCTAssertEqual(s.value(of: .due), 0)
+        XCTAssertEqual(s.value(of: .tick), 0)
+        XCTAssertEqual(s.value(of: .cross), 0)
+        XCTAssertEqual(s.value(of: .info), 0)
         s.sizeValues = SizePreset.fibonacci.values
         s.meetingSize = .l
         XCTAssertEqual(s.value(of: .meeting), 5)
@@ -134,6 +143,10 @@ final class ProjectTests: XCTestCase {
         XCTAssertEqual(list.newKey(for: "Grant"), "grant-2")
         XCTAssertTrue(Project.isConventionalCode("26XY"))
         XCTAssertFalse(Project.isConventionalCode("2XYZ"))
+        let coded = ProjectList(projects: [Project(key: "a", code: "26XY", title: "A")])
+        XCTAssertEqual(coded.project(withCode: " 26xy ")?.key, "a")
+        XCTAssertNil(coded.project(withCode: "26XY", excluding: "a"))
+        XCTAssertNil(coded.project(withCode: ""))
     }
 
     func testProjectsFileRoundTrip() throws {

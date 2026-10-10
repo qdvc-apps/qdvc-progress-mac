@@ -152,6 +152,21 @@ enum Prefs {
         set { defaults.set(newValue, forKey: "programmeSubtotals") }
     }
 
+    static var outlineWorkingWeek: Bool {
+        get { defaults.object(forKey: "outlineWorkingWeek") as? Bool ?? true }
+        set { defaults.set(newValue, forKey: "outlineWorkingWeek") }
+    }
+
+    static var footerSubtotals: Bool {
+        get { defaults.object(forKey: "footerSubtotals") as? Bool ?? true }
+        set { defaults.set(newValue, forKey: "footerSubtotals") }
+    }
+
+    static var noteCallouts: Bool {
+        get { defaults.object(forKey: "noteCallouts") as? Bool ?? true }
+        set { defaults.set(newValue, forKey: "noteCallouts") }
+    }
+
     static var isoWeekFallback: Bool {
         get { defaults.object(forKey: "isoWeekFallback") as? Bool ?? true }
         set { defaults.set(newValue, forKey: "isoWeekFallback") }

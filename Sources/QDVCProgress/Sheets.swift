@@ -15,7 +15,12 @@ struct NewProjectSheet: View {
         _programme = State(initialValue: programme)
     }
 
-    private var isValid: Bool { !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    /// The project that already has the ID typed, if any.
+    private var duplicate: Project? { model.projectList.project(withCode: code) }
+
+    private var isValid: Bool {
+        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && duplicate == nil
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -23,7 +28,11 @@ struct NewProjectSheet: View {
             Form {
                 TextField("Title", text: $title, prompt: Text("Required"))
                 TextField("ID", text: $code, prompt: Text("Optional, e.g. 26XY"))
-                if !code.isEmpty && !Project.isConventionalCode(code) {
+                    .font(.system(.body, design: .monospaced))
+                if let duplicate {
+                    Text("\u{201C}\(duplicate.title)\u{201D} already has the ID \(duplicate.code). Each ID can be used once.")
+                        .font(.caption).foregroundStyle(.red)
+                } else if !code.isEmpty && !Project.isConventionalCode(code) {
                     Text("IDs usually take the form NNXX: two digits, then two letters.")
                         .font(.caption).foregroundStyle(.secondary)
                 }

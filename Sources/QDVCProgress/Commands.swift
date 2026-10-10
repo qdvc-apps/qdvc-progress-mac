@@ -118,7 +118,10 @@ struct ProgressCommands: Commands {
                                                   set: { if $0 { model.totalsScope = s } }))
                 }
             }
-            Toggle("Programme Subtotals", isOn: $model.showProgrammeSubtotals)
+            Toggle("Programme Subtotals in Headings", isOn: $model.showProgrammeSubtotals)
+            Toggle("Programme Subtotals Above Totals", isOn: $model.showFooterSubtotals)
+            Toggle("Outline the Working Week", isOn: $model.outlineWorkingWeek)
+            Toggle("Show Notes in Callouts", isOn: $model.noteCallouts)
             Toggle("Week Numbers for Unlabelled Weeks", isOn: $model.isoWeekFallback)
             Divider()
             Button("Expand All Programmes") { model.setAllProgrammes(collapsed: false) }
@@ -143,11 +146,17 @@ struct ProgressCommands: Commands {
             Button("mtg \u{2014} Meeting") { model.setLabel(.meeting) }
                 .keyboardShortcut("6", modifiers: [.command, .option])
                 .disabled(!has)
-            Button("(!) \u{2014} Due Date") { model.setLabel(.due) }
+            Button("Due Date") { model.setLabel(.due) }
                 .keyboardShortcut("7", modifiers: [.command, .option])
                 .disabled(!has)
             Button("(P) \u{2014} Planned") { model.setLabel(.planned) }
                 .keyboardShortcut("8", modifiers: [.command, .option])
+                .disabled(!has)
+            Button("Tick") { model.setLabel(.tick) }
+                .disabled(!has)
+            Button("Cross") { model.setLabel(.cross) }
+                .disabled(!has)
+            Button("Information") { model.setLabel(.info) }
                 .disabled(!has)
             Button("Clear Label") { model.setLabel(nil) }
                 .keyboardShortcut("0", modifiers: [.command, .option])

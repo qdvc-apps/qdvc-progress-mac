@@ -14,8 +14,12 @@ enum GridMenus {
         }
         menu.separator()
         for label in CellLabel.specials {
-            menu.add(ActionMenuItem("\(label.text)  \u{2014} \(label.title)", key: String(label.key),
-                                    checked: common == .some(label)) { model.setLabel(label) })
+            let title = label.isEmblem ? label.title : "\(label.text)  \u{2014} \(label.title)"
+            let item = ActionMenuItem(title, key: String(label.key), checked: common == .some(label)) {
+                model.setLabel(label)
+            }
+            if label.isEmblem { item.image = GridStyle.emblemImage(label, size: 13) }
+            menu.add(item)
         }
         menu.add(ActionMenuItem("Clear Label", key: "0") { model.setLabel(nil) })
         menu.separator()

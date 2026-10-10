@@ -171,6 +171,14 @@ public struct ProjectList: Equatable {
 
     public var programmeNames: [String] { programmes.map(\.name) }
 
+    /// The project whose ID is `code` (ignoring case and surrounding
+    /// spaces), other than `excluding`. Nil for an empty code.
+    public func project(withCode code: String, excluding key: String? = nil) -> Project? {
+        let c = code.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !c.isEmpty else { return nil }
+        return projects.first { $0.key != key && $0.code.trimmingCharacters(in: .whitespaces).lowercased() == c }
+    }
+
     /// The programme a project is grouped under: its own if it exists,
     /// otherwise "" (No Programme).
     public func group(of project: Project) -> String {
