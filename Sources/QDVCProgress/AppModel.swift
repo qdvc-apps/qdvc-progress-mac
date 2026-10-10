@@ -328,7 +328,8 @@ final class AppModel {
         let now = LocalDate.today()
         guard now != today else { return }
         today = now
-        bump()
+        // Which projects are inactive today may have changed.
+        if query.inactiveTodayLast { relayout() } else { bump() }
     }
 
     private func load() {
@@ -426,7 +427,8 @@ final class AppModel {
     /// Recomputes the rows after a change to the projects or the query.
     func relayout() {
         lastWorked = log.lastWorked()
-        let r = RowLayout.rows(for: projectList, query: query, collapsed: collapsedProgrammes, lastWorked: lastWorked)
+        let r = RowLayout.rows(for: projectList, query: query, collapsed: collapsedProgrammes,
+                               lastWorked: lastWorked, today: today)
         rows = r.rows
         includedKeys = r.included
         includedSet = Set(r.included)

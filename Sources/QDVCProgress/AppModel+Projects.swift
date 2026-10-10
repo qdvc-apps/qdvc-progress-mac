@@ -156,10 +156,13 @@ extension AppModel {
         let list = projectList
         guard let i = list.index(of: key), let p = list.project(key) else { return nil }
         let group = list.group(of: p)
+        let pausedToday = p.isInactive(on: today)
         var j = i + offset
         while j >= 0 && j < list.projects.count {
             let q = list.projects[j]
-            if (!query.grouped || list.group(of: q) == group) && query.includes(q, in: list) { return j }
+            // With inactive-today projects clustered last, move within the cluster.
+            let sameCluster = !query.inactiveTodayLast || q.isInactive(on: today) == pausedToday
+            if (!query.grouped || list.group(of: q) == group) && sameCluster && query.includes(q, in: list) { return j }
             j += offset
         }
         return nil

@@ -218,6 +218,20 @@ final class QueryTests: XCTestCase {
         XCTAssertEqual(r.included, ["a", "b", "d"])
     }
 
+    func testInactiveTodayLast() {
+        var list = self.list
+        list.projects[1].inactivePeriods = [InactivePeriod(range: DayRange(from: d("2026-10-05"), to: d("2026-10-16")))]
+        var q = ProjectQuery(status: .all, sort: .title, inactiveTodayLast: true)
+        var r = RowLayout.rows(for: list, query: q, collapsed: [], lastWorked: [:], today: d("2026-10-10"))
+        // Alpha is inactive today, so it follows Gamma within Research.
+        XCTAssertEqual(r.included, ["c", "a", "b", "d"])
+        r = RowLayout.rows(for: list, query: q, collapsed: [], lastWorked: [:], today: d("2026-10-20"))
+        XCTAssertEqual(r.included, ["a", "c", "b", "d"])
+        q.grouped = false
+        r = RowLayout.rows(for: list, query: q, collapsed: [], lastWorked: [:], today: d("2026-10-10"))
+        XCTAssertEqual(r.included, ["b", "d", "c", "a"])
+    }
+
     func testCollapsedFilteredAndSorted() {
         var q = ProjectQuery(status: .all, sort: .title)
         var r = RowLayout.rows(for: list, query: q, collapsed: ["Research"], lastWorked: [:])

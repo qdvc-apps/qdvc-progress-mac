@@ -170,3 +170,4 @@ overwritten.
 | Emblem files and keys | Written `(!)`, `(ok)`, `(x)`, `(i)` in the log; typed !, v, x, ? (i stays "inactive days"). |
 | Project IDs | Unique: New Project refuses an ID another project has (ignoring case); the inspector warns if an edit makes one a duplicate. IDs show in a monospaced font. |
 | Liquid Glass | `swift build` records the deployment target as the SDK version in the binary, so AppKit kept the classic look; `scripts/build-app.sh` rewrites the field with `vtool` to the SDK actually used. |
+| Inactive projects in the listing | Optional (Sort › Inactive Today Last): within each programme, projects inactive today by an inactive period come after the others; the chosen sort applies within each cluster. The project-level active flag is handled by the Status filter instead. |

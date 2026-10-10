@@ -208,6 +208,8 @@ struct SortMenuItems: View {
         Divider()
         Toggle("Group by Programme", isOn: Binding(get: { model.query.grouped },
                                                    set: { model.query.grouped = $0 }))
+        Toggle("Inactive Today Last", isOn: Binding(get: { model.query.inactiveTodayLast },
+                                                    set: { model.query.inactiveTodayLast = $0 }))
     }
 }
 

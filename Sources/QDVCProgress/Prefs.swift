@@ -87,6 +87,7 @@ enum Prefs {
             q.sort = SortKey(rawValue: defaults.string(forKey: "sortKey") ?? "") ?? .manual
             q.ascending = defaults.object(forKey: "sortAscending") as? Bool ?? q.sort.defaultAscending
             q.grouped = defaults.object(forKey: "groupByProgramme") as? Bool ?? true
+            q.inactiveTodayLast = defaults.bool(forKey: "inactiveTodayLast")
             return q
         }
         set {
@@ -96,6 +97,7 @@ enum Prefs {
             defaults.set(newValue.sort.rawValue, forKey: "sortKey")
             defaults.set(newValue.ascending, forKey: "sortAscending")
             defaults.set(newValue.grouped, forKey: "groupByProgramme")
+            defaults.set(newValue.inactiveTodayLast, forKey: "inactiveTodayLast")
         }
     }
 

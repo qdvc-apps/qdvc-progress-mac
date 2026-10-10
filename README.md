@@ -47,7 +47,9 @@ and its precedents in Numbers, Calendar and Finder are explained in
 - **Filter and sort** from the toolbar: one programme or all, active or
   inactive projects or both, a search over titles, IDs, targets and
   collaborators, and sorting by title, ID, target, collaborators or the day
-  you last worked on a project.
+  you last worked on a project. Sort › Inactive Today Last moves the
+  projects that are in an inactive period today to the end of their
+  programme, keeping the sort within each cluster.
 - **Copy and paste** cells, one or a block. The inspector's Copy & Paste
   setting decides whether Paste writes the label, the note, or both; Edit ›
   Paste Special does it the other way once. Labels copied from a spreadsheet

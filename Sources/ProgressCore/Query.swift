@@ -62,15 +62,21 @@ public struct ProjectQuery: Equatable {
     public var ascending: Bool
     /// Show projects under programme headings (otherwise one flat list).
     public var grouped: Bool
+    /// Within each programme (or the flat list), put the projects that are
+    /// inactive today (an inactive period covers today) after the others.
+    /// The sort applies within each of the two clusters.
+    public var inactiveTodayLast: Bool
 
     public init(programme: String? = nil, status: StatusFilter = .active, search: String = "",
-                sort: SortKey = .manual, ascending: Bool = true, grouped: Bool = true) {
+                sort: SortKey = .manual, ascending: Bool = true, grouped: Bool = true,
+                inactiveTodayLast: Bool = false) {
         self.programme = programme
         self.status = status
         self.search = search
         self.sort = sort
         self.ascending = ascending
         self.grouped = grouped
+        self.inactiveTodayLast = inactiveTodayLast
     }
 
     public func includes(_ p: Project, in list: ProjectList) -> Bool {
@@ -102,11 +108,19 @@ public enum RowLayout {
     /// The grid's rows for `query`, and the keys of every project that
     /// passes the filter (including those in collapsed programmes), in row
     /// order.
+    /// `today` decides which projects are inactive today, for
+    /// `query.inactiveTodayLast`.
     public static func rows(for list: ProjectList, query: ProjectQuery, collapsed: Set<String>,
-                            lastWorked: [String: LocalDate]) -> (rows: [LayoutRow], included: [String]) {
+                            lastWorked: [String: LocalDate],
+                            today: LocalDate = .today()) -> (rows: [LayoutRow], included: [String]) {
         let order = Dictionary(uniqueKeysWithValues: list.projects.enumerated().map { ($0.element.key, $0.offset) })
         let matching = list.projects.filter { query.includes($0, in: list) }
-        let sorted = sort(matching, by: query.sort, ascending: query.ascending, order: order, lastWorked: lastWorked)
+        var sorted = sort(matching, by: query.sort, ascending: query.ascending, order: order, lastWorked: lastWorked)
+        if query.inactiveTodayLast {
+            // A stable split, so each cluster keeps the sort; grouping below
+            // keeps the order, so every programme gets its own two clusters.
+            sorted = sorted.filter { !$0.isInactive(on: today) } + sorted.filter { $0.isInactive(on: today) }
+        }
 
         guard query.grouped else {
             return (sorted.map { .project(key: $0.key) }, sorted.map(\.key))
