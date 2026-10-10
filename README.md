@@ -76,8 +76,11 @@ Select a cell (or drag across several) and type:
 ## Requirements
 
 - macOS 14 Sonoma or later.
-- Xcode 16 or later (free from the Mac App Store). The Command Line Tools
-  alone can build and run the app, but `swift test` needs full Xcode.
+- Xcode 16 or later (free from the Mac App Store); Xcode 26 or later for the
+  Liquid Glass look. Full Xcode is needed, not just the Command Line Tools:
+  from Xcode 27, SwiftUI's `@State` is a macro whose compiler plugin
+  (SwiftUIMacros) ships only with Xcode, so a Command Line Tools or swift.org
+  toolchain fails with "plugin for module 'SwiftUIMacros' not found".
 - No paid Apple Developer account.
 
 ## Build and run
@@ -85,10 +88,21 @@ Select a cell (or drag across several) and type:
 From the repository root:
 
 ```sh
-swift run                       # build and launch (debug)
-swift test                      # run the unit tests
 scripts/build-app.sh            # build "build/QDVC Progress.app" (release)
 scripts/build-app.sh --install  # …and copy it to ~/Applications
+```
+
+`scripts/build-app.sh` builds with Xcode's toolchain even when
+`xcode-select` points at the Command Line Tools: it picks the newest Xcode
+installed, and says which Xcode and macOS SDK it is using (warning if the
+SDK predates Liquid Glass). To run or test from the command line, point
+the tools at Xcode the same way, once per Terminal session or for good:
+
+```sh
+export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+# or: sudo xcode-select --switch /Applications/Xcode.app
+swift run                       # build and launch (debug)
+swift test                      # run the unit tests
 ```
 
 Or open the repository folder in Xcode (File → Open…, choose the folder that

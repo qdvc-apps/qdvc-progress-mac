@@ -14,7 +14,7 @@ Sources/QDVCProgress/         the SwiftUI/AppKit app
 Sources/QDVCProgress/Grid/    the AppKit grid
 Tests/ProgressCoreTests/      unit tests
 tools/make_icon.py            regenerates Resources/AppIcon.{svg,icns}
-scripts/build-app.sh          builds and ad-hoc signs "QDVC Progress.app"
+scripts/build-app.sh          builds (with the newest Xcode) and ad-hoc signs "QDVC Progress.app"
 Resources/Info.plist          bundle id org.qdvc.progress.mac
 sample-workspace/             nine projects in three programmes, Aug–Oct 2026
 docs/                         DESIGN, FILE_FORMAT, this guide
@@ -24,6 +24,19 @@ docs/                         DESIGN, FILE_FORMAT, this guide
 target is declared on macOS only. Yams (from 5.1.0) is the only dependency.
 Commit `Package.resolved` after the first build so everyone gets the same
 Yams.
+
+### 1.0 Toolchain
+
+Build with full Xcode. From Xcode 27, SwiftUI's `@State` is a macro whose
+implementation (the SwiftUIMacros compiler plugin) ships with Xcode, so the
+Command Line Tools or a swift.org toolchain fail with "plugin for module
+'SwiftUIMacros' not found". `scripts/build-app.sh` therefore sets
+`DEVELOPER_DIR` to the newest installed Xcode (found with Spotlight and in
+`/Applications`) when `xcode-select` points at the Command Line Tools,
+runs `xcrun swift` so that Xcode's compiler wins over any other on `PATH`,
+prints the compiler and macOS SDK versions, and warns when the SDK is older
+than 26 (no Liquid Glass). An explicit `DEVELOPER_DIR` is respected. The
+same block is used in the other QDVC macOS apps; keep them in step.
 
 ### 1.1 App icon
 
