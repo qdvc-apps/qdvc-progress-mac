@@ -180,10 +180,17 @@ struct LabelButtons: View {
                     .contentShape(RoundedRectangle(cornerRadius: 6))
                 }
                 .buttonStyle(.plain)
-                .help(label.map { "\($0.title) (key \($0.key))" } ?? "Clear the label (key 0)")
+                .help(tooltip(for: label))
             }
         }
         .padding(.vertical, 2)
+    }
+
+    /// A plain String, so `.help` takes its String overload: as a
+    /// LocalizedStringKey, interpolating the key (a Character) is deprecated.
+    private func tooltip(for label: CellLabel?) -> String {
+        guard let label else { return "Clear the label (key 0)" }
+        return "\(label.title) (key \(label.key))"
     }
 }
 
