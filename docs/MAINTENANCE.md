@@ -49,11 +49,12 @@ script rewrites that field with `vtool -set-build-version macos <minos>
 
 `tools/make_icon.py` writes `Resources/AppIcon.svg` and
 `Resources/AppIcon.icns` (needs `rsvg-convert`; `brew install librsvg`). The
-design is a frosted-glass grid card (blue work cells, a green meeting,
-today's column in yellow, a row of red totals) sealed with a navy
-rising-arrow badge, in the "Ember" palette, on Apple's template geometry,
-matching the other QDVC apps. `--preview` also writes
-`build/icon-preview.png`.
+design is a white spreadsheet filling the whole tile (a grey header row,
+today's column in yellow, blue work cells, a green meeting, a row of red
+totals) with a glossy navy rising-arrow badge, on Apple's template geometry.
+It mirrors the GTK 4 edition's icon (qdvc-progress-gtk4,
+`tools/make_icon.py`), cell for cell, so keep the two in step. `--preview`
+also writes `build/icon-preview.png`.
 
 ## 2. Modules
 

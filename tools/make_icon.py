@@ -2,13 +2,15 @@
 """Generate the app icon: Resources/AppIcon.svg (vector master) and
 Resources/AppIcon.icns (every macOS size, rendered natively from the vector).
 
-The design is a frosted-glass spreadsheet card: a row of day headings with
-today's column in yellow, rows of work cells in the app's blue heat map (one
-bright green meeting among them), and a row of salmon-to-red totals, sealed
-with a navy badge carrying a rising arrow: progress, logged day by day. It is
-drawn in the macOS 26 Liquid Glass style, in the "Ember" palette (pale peach
-to coral), and follows the icons of QDVC Meetings, Nice Mail, Bibliotheca and
-GTD EML for macOS, so the apps look like a family.
+The design is a white spreadsheet filling the whole icon shape, as in the
+GTK 4 edition's icon (qdvc-progress-gtk4, tools/make_icon.py), so the two
+editions are recognisably the same app: a light grey header row with today's
+column in yellow, project titles down the left, rows of work cells in the
+app's blue heat map (one bright green meeting among them), a row of
+salmon-to-red totals, and a glossy navy badge carrying a rising arrow:
+progress, logged day by day. The cells, today's column and the badge are
+placed as in the GTK 4 icon, rescaled from its 108 x 96 card to the square
+macOS tile.
 
 Geometry follows Apple's macOS icon template: a 1024x1024 canvas holding an
 824x824 tile (100 px transparent margin) with a 185.4 px continuous-curvature
@@ -37,22 +39,24 @@ ROOT = Path(__file__).resolve().parents[1]
 RESOURCES = ROOT / "Resources"
 
 # ---------------------------------------------------------------------------
-# Palette ("Ember"). The deep tone also tints the card's shadows, so the
-# white glass stays distinct from the pale background.
+# Palette. The tile is white, shading to the faintest grey at the bottom so it
+# keeps an edge on a white background; the greys are GNOME's, as in the GTK 4
+# icon.
 
-BG_TOP = "#FFF2EA"
-BG_DEEP = "#E4785F"
+TILE_TOP, TILE_BOTTOM = "#FFFFFF", "#F3F3F5"
+HEADER = "#F0EFF0"
+STUB = "#C0BFBC"
+RULE = "#DEDDDA"
 
 # The grid's own colours (Sources/QDVCProgress/Grid/GridStyle.swift).
 SIZES = ["#CFE8FB", "#9CCBF2", "#5A9BDB", "#2B5EA8", "#10275C"]
 MEETING = "#2EDB4F"
 TODAY = "#FFD60A"
-TOTAL_LOW, TOTAL_HIGH = "#FFE3D8", "#C62F2F"
+TOTALS = ["#FCD2C3", "#F29C85", "#E06A55", "#C62F2F"]
 
-# The seal: a navy sphere with a white rising arrow.
+# The badge: a navy sphere with a white rising arrow.
 FACE_LIGHT, FACE_MID, FACE_DARK = "#7FA8E8", "#2B5EA8", "#10275C"
 FEATURES = "#FFFFFF"
-ACCENT = "#2B5EA8"
 
 # ---------------------------------------------------------------------------
 # Apple's template geometry.
@@ -97,76 +101,78 @@ def continuous_rounded_rect(x, y, w, h, r):
 
 TILE = continuous_rounded_rect(TILE_ORIGIN, TILE_ORIGIN, TILE_SIZE, TILE_SIZE, CORNER_RADIUS)
 
-# The card (x, y, width, height) and the seal's radius. The seal sits on the
-# card's lower right corner.
-CARD = (204, 236, 576, 508)
+# The grid, as in the GTK 4 icon: rows top to bottom, five day columns; an
+# index into SIZES, "m" for a meeting, or None for an empty cell. TOTAL_ROW
+# indexes TOTALS.
+WORK = [
+    [3, 2, None, 1, 0],
+    [None, "m", 2, 3, None],
+    [1, None, 4, 2, 1],
+]
+TOTAL_ROW = [2, 1, 3, 3, 1]
+TODAY_COL = 2
+
+# Layout inside the tile, in canvas pixels.
+HEADER_H = 168          # the header row's height
+PROJECT_W = 176         # the project column, left of the days
+RIGHT_PAD = 40
+ROW_H = 130             # work and totals rows
+CELL_INSET = 12         # gap between a cell and its row/column bounds
 SEAL_RADIUS = 122
 
 
-def _hex2rgb(h):
-    h = h.lstrip("#")
-    return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+def _grid():
+    """The spreadsheet filling the tile. Returns (elements, seal centre)."""
+    x0 = y0 = TILE_ORIGIN
+    size = TILE_SIZE
+    left = x0 + PROJECT_W
+    cw = (size - PROJECT_W - RIGHT_PAD) / len(WORK[0])
+    top = y0 + HEADER_H + 34
+    tot_y = top + len(WORK) * ROW_H + 30
+    parts = [
+        # Header row, with a hairline under it.
+        f'<rect x="{x0}" y="{y0}" width="{size}" height="{HEADER_H}" fill="{HEADER}"/>',
+        f'<rect x="{x0}" y="{y0 + HEADER_H - 3}" width="{size}" height="3" fill="{RULE}"/>',
+    ]
 
+    # Today's column: a pale yellow band down the grid, solid in the header.
+    tx = left + TODAY_COL * cw
+    parts.append(f'<rect x="{tx + 8:.1f}" y="{y0 + 40}" width="{cw - 16:.1f}" '
+                 f'height="{tot_y + ROW_H + 10 - (y0 + 40):.1f}" rx="26" fill="{TODAY}" fill-opacity="0.28"/>')
+    parts.append(f'<rect x="{tx + 8:.1f}" y="{y0 + 40}" width="{cw - 16:.1f}" height="{HEADER_H - 76}" '
+                 f'rx="26" fill="{TODAY}"/>')
+    for c in range(len(WORK[0])):
+        if c != TODAY_COL:
+            parts.append(f'<rect x="{left + c * cw + cw / 2 - 30:.1f}" y="{y0 + HEADER_H / 2 - 12:.1f}" '
+                         f'width="60" height="24" rx="12" fill="{STUB}"/>')
 
-def _mix(a, b, t):
-    ra, rb = _hex2rgb(a), _hex2rgb(b)
-    return "#%02X%02X%02X" % tuple(round(x + (y - x) * t) for x, y in zip(ra, rb))
-
-
-# Work cells, row by row: an index into SIZES, "m" for a meeting, or None.
-WORK = [
-    [1, 2, None, 3, "m"],
-    [None, 0, 2, 4, 2],
-    [2, "m", 1, None, 0],
-]
-
-
-def _card():
-    """The frosted-glass grid card. Returns (elements, seal centre)."""
-    x, y, w, h = CARD
-    cols, today_col = 5, 3
-    pad_x, cell, gap = 68, 72, 20
-    parts = [f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="56" fill="url(#glass)"/>']
-
-    def cx(c):
-        return x + pad_x + c * (cell + gap)
-
-    # Day headings: today's column is a yellow pill running down the card.
-    head_y = y + 62
-    row_y = head_y + 62
-    tot_y = row_y + 3 * (cell + 14) + 10
-    parts.append(f'<rect x="{cx(today_col) - 8}" y="{head_y - 8}" width="{cell + 16}" '
-                 f'height="{tot_y + 52 - (head_y - 8)}" rx="22" fill="{TODAY}" fill-opacity="0.22"/>')
-    for c in range(cols):
-        fill = TODAY if c == today_col else _mix("#FFFFFF", BG_DEEP, 0.35)
-        opacity = 1 if c == today_col else 0.55
-        parts.append(f'<rect x="{cx(c)}" y="{head_y}" width="{cell}" height="34" rx="12" '
-                     f'fill="{fill}" fill-opacity="{opacity}"/>')
-
-    # Work rows.
+    # Project titles, then the work cells.
     for r, row in enumerate(WORK):
-        yy = row_y + r * (cell + 14)
+        yy = top + r * ROW_H
+        parts.append(f'<rect x="{x0 + 54}" y="{yy + ROW_H / 2 - 16:.1f}" width="108" height="32" rx="16" '
+                     f'fill="{STUB}"/>')
         for c, v in enumerate(row):
             if v is None:
-                parts.append(f'<rect x="{cx(c) + 2}" y="{yy + 2}" width="{cell - 4}" height="{cell - 4}" rx="16" '
-                             f'fill="none" stroke="{BG_DEEP}" stroke-opacity="0.22" stroke-width="3"/>')
                 continue
             fill = MEETING if v == "m" else SIZES[v]
-            parts.append(f'<rect x="{cx(c)}" y="{yy}" width="{cell}" height="{cell}" rx="16" fill="{fill}"/>')
+            parts.append(f'<rect x="{left + c * cw + CELL_INSET:.1f}" y="{yy + CELL_INSET}" '
+                         f'width="{cw - 2 * CELL_INSET:.1f}" height="{ROW_H - 2 * CELL_INSET}" rx="24" '
+                         f'fill="{fill}"/>')
 
-    # Totals row.
-    for c, t in enumerate([0.35, 0.6, 0.3, 0.95, 0.5]):
-        parts.append(f'<rect x="{cx(c)}" y="{tot_y}" width="{cell}" height="44" rx="14" '
-                     f'fill="{_mix(TOTAL_LOW, TOTAL_HIGH, t)}"/>')
+    # Totals, under a rule.
+    parts.append(f'<rect x="{x0 + 40}" y="{tot_y - 18}" width="{size - 80}" height="6" rx="3" fill="{RULE}"/>')
+    for c, v in enumerate(TOTAL_ROW):
+        parts.append(f'<rect x="{left + c * cw + CELL_INSET:.1f}" y="{tot_y + CELL_INSET}" '
+                     f'width="{cw - 2 * CELL_INSET:.1f}" height="{ROW_H - 2 * CELL_INSET}" rx="24" '
+                     f'fill="{TOTALS[v]}"/>')
 
-    # glass rim
-    parts.append(f'<rect x="{x + 2}" y="{y + 2}" width="{w - 4}" height="{h - 4}" rx="54" fill="none" '
-                 'stroke="url(#rim)" stroke-width="4"/>')
-    return parts, (x + w - 54, y + h - 46)
+    # The badge sits over the lower right of the grid, inside the tile.
+    return parts, (x0 + size - 176, y0 + size - 166)
 
 
 def _seal(cx, cy, r):
-    """A glossy navy seal with a white rising arrow, in a white ring."""
+    """A glossy navy seal with a white rising arrow, in a white ring that
+    parts it from the cells beneath."""
     s = r * 0.62
     pts = [(cx - s, cy + s * 0.55), (cx - s * 0.3, cy - s * 0.05), (cx + s * 0.1, cy + s * 0.3),
            (cx + s * 0.78, cy - s * 0.45)]
@@ -176,7 +182,7 @@ def _seal(cx, cy, r):
             f'L{tip[0] - s * 0.42:.1f},{tip[1] - s * 0.14:.1f} '
             f'L{tip[0] + s * 0.12:.1f},{tip[1] + s * 0.42:.1f} Z')
     return [
-        f'<circle cx="{cx}" cy="{cy}" r="{r + 10}" fill="#FFFFFF" opacity="0.9"/>',
+        f'<circle cx="{cx}" cy="{cy}" r="{r + 12}" fill="#FFFFFF"/>',
         f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="url(#face)"/>',
         f'<polyline points="{line}" fill="none" stroke="{FEATURES}" stroke-width="{r * 0.15:.1f}" '
         'stroke-linecap="round" stroke-linejoin="round"/>',
@@ -190,29 +196,11 @@ def _seal(cx, cy, r):
 def icon_svg():
     sigma = SHADOW_BLUR_RADIUS / 2
     defs = [
-        f'<linearGradient id="bg" x1="0" y1="0" x2="0.35" y2="1">'
-        f'<stop offset="0" stop-color="{BG_TOP}"/><stop offset="1" stop-color="{BG_DEEP}"/></linearGradient>',
-        '<radialGradient id="glow" cx="0.30" cy="0.18" r="0.75">'
-        '<stop offset="0" stop-color="#FFFFFF" stop-opacity="0.34"/>'
-        '<stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient>',
-        '<linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">'
-        '<stop offset="0" stop-color="#FFFFFF" stop-opacity="0.22"/>'
-        '<stop offset="0.40" stop-color="#FFFFFF" stop-opacity="0.03"/>'
-        '<stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient>',
-        '<linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">'
-        '<stop offset="0" stop-color="#FFFFFF" stop-opacity="0.9"/>'
-        '<stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.3"/>'
-        '<stop offset="1" stop-color="#FFFFFF" stop-opacity="0.6"/></linearGradient>',
+        '<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">'
+        f'<stop offset="0" stop-color="{TILE_TOP}"/><stop offset="1" stop-color="{TILE_BOTTOM}"/></linearGradient>',
         '<linearGradient id="edge" x1="0" y1="0" x2="0" y2="1">'
-        '<stop offset="0" stop-color="#FFFFFF" stop-opacity="0.75"/>'
-        '<stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.12"/>'
-        '<stop offset="1" stop-color="#FFFFFF" stop-opacity="0.35"/></linearGradient>',
-        '<linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">'
-        '<stop offset="0" stop-color="#FFFFFF" stop-opacity="0.78"/>'
-        f'<stop offset="1" stop-color="{_mix("#FFFFFF", BG_DEEP, 0.25)}" stop-opacity="0.55"/></linearGradient>',
-        '<linearGradient id="glassflap" x1="0" y1="0" x2="0" y2="1">'
-        '<stop offset="0" stop-color="#FFFFFF" stop-opacity="0.95"/>'
-        '<stop offset="1" stop-color="#FFFFFF" stop-opacity="0.62"/></linearGradient>',
+        '<stop offset="0" stop-color="#000000" stop-opacity="0.04"/>'
+        '<stop offset="1" stop-color="#000000" stop-opacity="0.12"/></linearGradient>',
         '<radialGradient id="face" cx="0.38" cy="0.30" r="0.8">'
         f'<stop offset="0" stop-color="{FACE_LIGHT}"/><stop offset="0.55" stop-color="{FACE_MID}"/>'
         f'<stop offset="1" stop-color="{FACE_DARK}"/></radialGradient>',
@@ -222,22 +210,21 @@ def icon_svg():
         f'<feGaussianBlur in="SourceAlpha" stdDeviation="{sigma}"/><feOffset dy="{SHADOW_OFFSET_Y}"/>'
         f'<feComponentTransfer><feFuncA type="linear" slope="{SHADOW_OPACITY}"/></feComponentTransfer>'
         '<feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>',
-        # Tinted shadow under the card and seal.
+        # A soft navy shadow under the badge, lifting it off the grid.
         '<filter id="objshadow" x="-30%" y="-30%" width="160%" height="160%">'
-        '<feGaussianBlur in="SourceAlpha" stdDeviation="14"/><feOffset dx="0" dy="16"/>'
-        f'<feFlood flood-color="{BG_DEEP}" flood-opacity="0.55"/><feComposite operator="in" in2="SourceAlpha"/>'
+        '<feGaussianBlur in="SourceAlpha" stdDeviation="12"/><feOffset dx="0" dy="12"/>'
+        f'<feFlood flood-color="{FACE_DARK}" flood-opacity="0.35"/><feComposite operator="in" in2="SourceAlpha"/>'
         '<feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>',
     ]
-    card, (cx, cy) = _card()
-    objects = card + _seal(cx, cy, SEAL_RADIUS)
+    grid, (cx, cy) = _grid()
     parts = [
         f'<g filter="url(#shadow)"><path d="{TILE}" fill="url(#bg)"/></g>',
         '<g clip-path="url(#clip)">',
-        '<rect x="100" y="100" width="824" height="824" fill="url(#glow)"/>',
-        '<g filter="url(#objshadow)">', *objects, '</g>',
-        '<rect x="100" y="100" width="824" height="824" fill="url(#sheen)"/>',
+        *grid,
+        '<g filter="url(#objshadow)">', *_seal(cx, cy, SEAL_RADIUS), '</g>',
         '</g>',
-        f'<path d="{TILE}" fill="none" stroke="url(#edge)" stroke-width="6"/>',
+        # A hairline edge, so the white tile holds its shape on white.
+        f'<path d="{TILE}" fill="none" stroke="url(#edge)" stroke-width="3"/>',
     ]
     return ('<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">'
             f'<defs>{"".join(defs)}</defs>{"".join(parts)}</svg>\n')
